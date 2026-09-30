@@ -16,9 +16,13 @@ import com.coderpage.mine.R;
 import com.coderpage.mine.app.tally.data.CategoryContant;
 import com.coderpage.mine.app.tally.data.CategoryIconHelper;
 import com.coderpage.mine.app.tally.persistence.sql.dao.CategoryDao;
+import com.coderpage.mine.app.tally.persistence.sql.dao.LargeExpenseDao;
 import com.coderpage.mine.app.tally.persistence.sql.dao.RecordDao;
+import com.coderpage.mine.app.tally.persistence.sql.dao.RecurringExpenseDao;
 import com.coderpage.mine.app.tally.persistence.sql.entity.CategoryEntity;
+import com.coderpage.mine.app.tally.persistence.sql.entity.LargeExpenseEntity;
 import com.coderpage.mine.app.tally.persistence.sql.entity.RecordEntity;
+import com.coderpage.mine.app.tally.persistence.sql.entity.RecurringExpenseEntity;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -28,7 +32,8 @@ import java.util.List;
  * @since 0.6.0
  */
 
-@Database(entities = {RecordEntity.class, CategoryEntity.class}, version = 60, exportSchema = false)
+@Database(entities = {RecordEntity.class, CategoryEntity.class, LargeExpenseEntity.class,
+        RecurringExpenseEntity.class}, version = 63, exportSchema = false)
 public abstract class TallyDatabase extends RoomDatabase {
     /** sqlite db name */
     private static final String DATABASE_NAME = "sql_tally";
@@ -56,6 +61,10 @@ public abstract class TallyDatabase extends RoomDatabase {
      */
     public abstract CategoryDao categoryDao();
 
+    public abstract LargeExpenseDao largeExpenseDao();
+
+    public abstract RecurringExpenseDao recurringExpenseDao();
+
     public static TallyDatabase getInstance() {
         if (sInstance == null) {
             synchronized (TallyDatabase.class) {
@@ -63,7 +72,8 @@ public abstract class TallyDatabase extends RoomDatabase {
                     sInstance = Room.databaseBuilder(
                             MineApp.getAppContext(),
                             TallyDatabase.class, DATABASE_NAME)
-                            .addMigrations(MIGRATION_010_040, MIGRATION_040_060)
+                            .addMigrations(MIGRATION_010_040, MIGRATION_040_060,
+                                    MIGRATION_060_061, MIGRATION_061_062, MIGRATION_062_063)
                             .addCallback(mTallDatabaseCallback)
                             .allowMainThreadQueries()
                             .build();
@@ -72,6 +82,27 @@ public abstract class TallyDatabase extends RoomDatabase {
         }
         return sInstance;
     }
+
+    private static final Migration MIGRATION_060_061 = new Migration(60, 61) {
+        @Override
+        public void migrate(@NonNull SupportSQLiteDatabase database) {
+            database.execSQL("CREATE TABLE IF NOT EXISTS `large_expense` (`id` TEXT NOT NULL, `amount` REAL NOT NULL, `note` TEXT NOT NULL, `expense_time` INTEGER NOT NULL, PRIMARY KEY(`id`))");
+        }
+    };
+
+    private static final Migration MIGRATION_061_062 = new Migration(61, 62) {
+        @Override
+        public void migrate(@NonNull SupportSQLiteDatabase database) {
+            database.execSQL("CREATE TABLE IF NOT EXISTS `recurring_expense` (`id` TEXT NOT NULL, `name` TEXT NOT NULL, `amount` REAL NOT NULL, `day_of_month` INTEGER NOT NULL, `category_unique_name` TEXT NOT NULL, `start_month` INTEGER NOT NULL, `last_generated_month` INTEGER NOT NULL, PRIMARY KEY(`id`))");
+        }
+    };
+
+    private static final Migration MIGRATION_062_063 = new Migration(62, 63) {
+        @Override
+        public void migrate(@NonNull SupportSQLiteDatabase database) {
+            database.execSQL("ALTER TABLE category ADD COLUMN category_hidden INTEGER NOT NULL DEFAULT 0");
+        }
+    };
 
     private static Callback mTallDatabaseCallback = new Callback() {
         @Override

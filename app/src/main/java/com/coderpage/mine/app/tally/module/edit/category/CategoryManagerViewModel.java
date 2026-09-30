@@ -8,7 +8,9 @@ import android.arch.lifecycle.LifecycleOwner;
 import android.arch.lifecycle.LiveData;
 import android.arch.lifecycle.MutableLiveData;
 import android.arch.lifecycle.OnLifecycleEvent;
+import android.support.v7.app.AlertDialog;
 import android.view.View;
+import android.widget.Toast;
 
 import com.coderpage.base.utils.ResUtils;
 import com.coderpage.framework.BaseViewModel;
@@ -77,11 +79,16 @@ public class CategoryManagerViewModel extends BaseViewModel implements Lifecycle
         mViewReliedTask.setValue(activity -> {
             new PopupMenu(activity)
                     .addMenu(0, 0, ResUtils.getString(activity, R.string.edit_category))
+                    .addMenu(1, 0, ResUtils.getString(activity, R.string.delete_category))
                     .setOnItemClickListener((popupWindow, item) -> {
                         switch (item.getId()) {
                             case 0:
                                 popupWindow.dismiss();
                                 CategoryEditActivity.openAsEdit(activity, category.getId());
+                                break;
+                            case 1:
+                                popupWindow.dismiss();
+                                confirmDelete(activity, category);
                                 break;
                             default:
                                 popupWindow.dismiss();
@@ -90,6 +97,28 @@ public class CategoryManagerViewModel extends BaseViewModel implements Lifecycle
                     })
                     .show(anchorView);
         });
+    }
+
+    private void confirmDelete(Activity activity, CategoryModel category) {
+        new AlertDialog.Builder(activity)
+                .setMessage(activity.getString(R.string.delete_category_confirm, category.getName()))
+                .setNegativeButton(R.string.cancel, null)
+                .setPositiveButton(R.string.confirm, (dialog, which) ->
+                        mRepository.hideCategory(category, result -> activity.runOnUiThread(() -> {
+                            if (activity.isFinishing()) return;
+                            if (result == CategoryRepository.HIDE_SUCCESS) {
+                                EventBus.getDefault().post(new EventCategoryUpdate(category));
+                            } else {
+                                int message = result == CategoryRepository.HIDE_USED_BY_RECURRING
+                                        ? R.string.delete_category_used_by_recurring
+                                        : result == CategoryRepository.HIDE_LAST_VISIBLE
+                                        ? R.string.delete_category_last_visible
+                                        : R.string.delete_category_failed;
+                                Toast.makeText(activity, message,
+                                        Toast.LENGTH_SHORT).show();
+                            }
+                        })))
+                .show();
     }
 
     /** 添加分类点击 */

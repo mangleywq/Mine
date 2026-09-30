@@ -20,24 +20,27 @@ android {
 
     signingConfigs {
         release {
-            keyAlias rootProject.keyAlias
-            keyPassword rootProject.keyPassword
-            storeFile file(rootProject.keyStore)
-            storePassword rootProject.storePassword
+            if (rootProject.hasProperty('keyAlias') && rootProject.hasProperty('keyPassword')
+                    && rootProject.hasProperty('keyStore') && rootProject.hasProperty('storePassword')) {
+                keyAlias rootProject.keyAlias
+                keyPassword rootProject.keyPassword
+                storeFile file(rootProject.keyStore)
+                storePassword rootProject.storePassword
+            }
         }
     }
     buildTypes {
         release {
             minifyEnabled false
-            signingConfig signingConfigs.release
+            if (rootProject.hasProperty('keyStore')) {
+                signingConfig signingConfigs.release
+            }
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
-            buildConfigField 'String', 'TALKING_DATA_APP_ID', "\"$rootProject.talkingDataId\""
         }
         debug {
-            minifyEnabled false
-            signingConfig signingConfigs.release
+            minifyEnabled true
+            shrinkResources true
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
-            buildConfigField 'String', 'TALKING_DATA_APP_ID', "\"$rootProject.talkingDataId\""
         }
     }
     dataBinding {
@@ -97,20 +100,8 @@ android {
     }
 }
 
-apply plugin: 'com.coderpage.app'
-
-uploader {
-    apiServer = 'http://app.coderpage.com'
-    token = rootProject.releaseToken
-    appName = '我的记账本'
-    changeLog = file("${rootDir}/source/changelog/${rootProject.appVersionName}").text;
-    isRelease = true
-}
-
 dependencies {
-    api fileTree(include: ['*.jar'], dir: 'libs')
     api project(':libbase')
-    api project(':libupdate')
     api rootProject.appCompat
     api rootProject.recyclerview
     api rootProject.design
@@ -119,9 +110,6 @@ dependencies {
     api rootProject.materialCalendarview
     api rootProject.mpAndroidChart
     api rootProject.fastjson
-    api rootProject.retrofit
-    api rootProject.retrofitConverterFastjson
-    api rootProject.okhttp3InterceptorLogging
     api rootProject.eventBus
     api rootProject.archRoomRuntime
     api rootProject.archLifecycleExtension

@@ -48,6 +48,28 @@
     <string name="menu_tally_sort_category">排序</string>
     <string name="menu_tally_debug">DEBUG</string>
     <string name="menu_tally_manager">管理</string>
+    <string name="large_expense_title">大额支出</string>
+    <string name="large_expense_add">记一笔大额支出</string>
+    <string name="large_expense_amount">金额（元）</string>
+    <string name="large_expense_note">备注</string>
+    <string name="large_expense_date">选择日期</string>
+    <string name="large_expense_invalid_amount">请输入大于 0 的金额，最多保留两位小数</string>
+    <string name="large_expense_save">保存</string>
+    <string name="large_expense_edit">编辑</string>
+    <string name="large_expense_delete_confirm">确定删除这笔大额支出？</string>
+    <string name="large_expense_load_error">读取大额支出失败</string>
+    <string name="large_expense_save_error">保存大额支出失败</string>
+    <string name="recurring_expense_title">定期支出</string>
+    <string name="recurring_expense_add">记一笔定期支出</string>
+    <string name="recurring_expense_name">名称</string>
+    <string name="recurring_expense_amount">金额（元）</string>
+    <string name="recurring_expense_day">每月记账日</string>
+    <string name="recurring_expense_category">支出分类</string>
+    <string name="recurring_expense_save">保存</string>
+    <string name="recurring_expense_invalid">请填写名称和大于零的金额，金额最多保留两位小数</string>
+    <string name="recurring_expense_delete_confirm">删除这项定期支出？</string>
+    <string name="recurring_expense_error">定期支出操作失败</string>
+    <string name="recurring_expense_day_format">每月 %1$d 日</string>
 
     <!--  toolbar title of tally main activity -->
     <string name="tally_toolbar_title_main">@string/app_name</string>
@@ -112,6 +134,11 @@
     <string name="tally_time">时间</string>
 
     <string name="edit_category">编辑分类</string>
+    <string name="delete_category">删除分类</string>
+    <string name="delete_category_confirm">删除分类“%1$s”？已有账单会保留。</string>
+    <string name="delete_category_used_by_recurring">该分类仍用于定期支出，请先修改或删除对应项目</string>
+    <string name="delete_category_last_visible">请至少保留一个此类分类</string>
+    <string name="delete_category_failed">删除分类失败，请重试</string>
     <string name="add_category">添加分类</string>
     <string name="expense_category">支出</string>
     <string name="income_category">收入</string>

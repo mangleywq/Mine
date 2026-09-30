@@ -31,13 +31,17 @@ public interface CategoryDao {
     @Query("select * from category where category_id = :id")
     CategoryModel queryById(long id);
 
+    @SuppressWarnings(RoomWarnings.CURSOR_MISMATCH)
+    @Query("select * from category where category_unique_name = :uniqueName limit 1")
+    CategoryModel queryByUniqueName(String uniqueName);
+
     /**
      * 查询所有消费分类
      *
      * @return 所有消费分类
      */
     @SuppressWarnings(RoomWarnings.CURSOR_MISMATCH)
-    @Query("select * from category where category_type = 0 order by category_order ASC")
+    @Query("select * from category where category_type = 0 and category_hidden = 0 order by category_order ASC")
     List<CategoryModel> allExpenseCategory();
 
     /**
@@ -46,7 +50,7 @@ public interface CategoryDao {
      * @return 所有消费分类
      */
     @SuppressWarnings(RoomWarnings.CURSOR_MISMATCH)
-    @Query("select * from category where category_type = 1 order by category_order ASC")
+    @Query("select * from category where category_type = 1 and category_hidden = 0 order by category_order ASC")
     List<CategoryModel> allIncomeCategory();
 
     /**
@@ -57,6 +61,9 @@ public interface CategoryDao {
     @SuppressWarnings(RoomWarnings.CURSOR_MISMATCH)
     @Query("select * from category order by category_order ASC")
     List<CategoryModel> allCategory();
+
+    @Query("select count(*) from category where category_type = :type and category_hidden = 0")
+    int visibleCount(int type);
 
     /**
      * 插入分类
@@ -84,4 +91,7 @@ public interface CategoryDao {
      */
     @Query("update category set category_order=:order where category_id = :categoryId")
     void updateOrder(long categoryId, int order);
+
+    @Query("update category set category_hidden = 1 where category_id = :categoryId and category_hidden = 0")
+    int hide(long categoryId);
 }

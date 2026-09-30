@@ -60,11 +60,6 @@ public class MenuDialogViewModel extends BaseViewModel {
 
     private void init() {
         List<MenuDialogItem> menuList = new ArrayList<>();
-        // 关于
-        menuList.add(new MenuDialogItem(
-                ResUtils.getString(getApplication(), R.string.menu_tall_about),
-                TallyRouter.ABOUT,
-                ResUtils.getDrawable(getApplication(), R.drawable.ic_about)));
         // 备份文件
         menuList.add(new MenuDialogItem(
                 ResUtils.getString(getApplication(), R.string.tally_toolbar_title_backup_file),
@@ -80,6 +75,14 @@ public class MenuDialogViewModel extends BaseViewModel {
                 ResUtils.getString(getApplication(), R.string.menu_tally_chart),
                 TallyRouter.CHART,
                 ResUtils.getDrawable(getApplication(), R.drawable.ic_chart)));
+        menuList.add(new MenuDialogItem(
+                ResUtils.getString(getApplication(), R.string.large_expense_title),
+                TallyRouter.LARGE_EXPENSE,
+                ResUtils.getDrawable(getApplication(), R.drawable.ic_large_expense)));
+        menuList.add(new MenuDialogItem(
+                ResUtils.getString(getApplication(), R.string.recurring_expense_title),
+                TallyRouter.RECURRING_EXPENSE,
+                ResUtils.getDrawable(getApplication(), R.drawable.ic_recurring_expense)));
         mMenuList.setValue(menuList);
     }
 }

@@ -1,6 +1,7 @@
 package com.coderpage.mine.app.tally.module.backup;
 
 import android.content.Context;
+import android.net.Uri;
 import android.os.Build;
 import android.text.TextUtils;
 
@@ -19,13 +20,15 @@ import com.coderpage.mine.app.tally.persistence.model.Record;
 import com.coderpage.mine.app.tally.persistence.sql.TallyDatabase;
 import com.coderpage.mine.app.tally.persistence.sql.dao.CategoryDao;
 import com.coderpage.mine.app.tally.persistence.sql.entity.CategoryEntity;
+import com.coderpage.mine.app.tally.persistence.sql.entity.LargeExpenseEntity;
 import com.coderpage.mine.app.tally.persistence.sql.entity.RecordEntity;
+import com.coderpage.mine.app.tally.persistence.sql.entity.RecurringExpenseEntity;
 
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -109,37 +112,46 @@ public class Backup {
     public static void readBackupJsonFile(File file, RestoreProgressListener listener) {
         AsyncTaskExecutor.execute(() -> {
             listener.onProgressUpdate(RestoreProgress.READ_FILE);
-            if (file == null) {
-                listener.failure(new NonThrowError(ErrorCode.INTERNAL_ERR, "File is null"));
-                return;
-            }
-
-            LogUtils.LOGD(TAG,"Read backup json file: " + file.getAbsolutePath());
-
-            if (!file.exists()) {
-                listener.failure(new NonThrowError(ErrorCode.ILLEGAL_ARGS, "File not exist"));
-                return;
-            }
-            if (file.isDirectory()) {
-                listener.failure(new NonThrowError(ErrorCode.ILLEGAL_ARGS, "Illegal file type"));
-                return;
-            }
-
-            FileInputStream fis;
-            try {
-                fis = new FileInputStream(file);
-            } catch (FileNotFoundException e) {
-                LOGE(TAG, "File not found", e);
+            if (file == null || !file.isFile()) {
                 listener.failure(new NonThrowError(ErrorCode.ILLEGAL_ARGS, "File not found"));
                 return;
             }
-
-            InputStreamReader inputStreamReader = null;
-            BufferedReader bufferedReader = null;
-            String sourceString = null;
+            LogUtils.LOGD(TAG, "Read backup json file: " + file.getAbsolutePath());
             try {
-                inputStreamReader = new InputStreamReader(fis);
-                bufferedReader = new BufferedReader(inputStreamReader);
+                readBackupJsonStream(new FileInputStream(file), listener);
+            } catch (IOException e) {
+                LOGE(TAG, "File io err", e);
+                listener.failure(new NonThrowError(ErrorCode.INTERNAL_ERR, "File io err"));
+            }
+        });
+    }
+
+    /** Read a selected document without resolving its content URI to a filesystem path. */
+    public static void readBackupJsonUri(Context context, Uri uri, RestoreProgressListener listener) {
+        AsyncTaskExecutor.execute(() -> {
+            listener.onProgressUpdate(RestoreProgress.READ_FILE);
+            if (uri == null) {
+                listener.failure(new NonThrowError(ErrorCode.ILLEGAL_ARGS, "File not found"));
+                return;
+            }
+            try {
+                InputStream stream = context.getContentResolver().openInputStream(uri);
+                if (stream == null) {
+                    listener.failure(new NonThrowError(ErrorCode.ILLEGAL_ARGS, "File not found"));
+                    return;
+                }
+                readBackupJsonStream(stream, listener);
+            } catch (IOException | SecurityException e) {
+                LOGE(TAG, "File io err", e);
+                listener.failure(new NonThrowError(ErrorCode.INTERNAL_ERR, "File io err"));
+            }
+        });
+    }
+
+    private static void readBackupJsonStream(InputStream stream, RestoreProgressListener listener) {
+            String sourceString;
+            try (BufferedReader bufferedReader =
+                         new BufferedReader(new InputStreamReader(stream, "UTF-8"))) {
                 String line;
                 StringBuilder sourceBuilder = new StringBuilder();
                 while ((line = bufferedReader.readLine()) != null) {
@@ -150,24 +162,19 @@ public class Backup {
                 LOGE(TAG, "IO Err", e);
                 listener.failure(new NonThrowError(ErrorCode.INTERNAL_ERR, "File io err"));
                 return;
-            } finally {
-                try {
-                    bufferedReader.close();
-                    inputStreamReader.close();
-                } catch (IOException e) {
-                    // no-op
-                }
             }
 
             listener.onProgressUpdate(RestoreProgress.CHECK_FILE_FORMAT);
             try {
                 BackupModel backupModel = JSON.parseObject(sourceString, BackupModel.class);
+                if (backupModel == null || backupModel.getMetadata() == null) {
+                    throw new IllegalArgumentException("Missing backup metadata");
+                }
                 listener.success(backupModel);
             } catch (Exception e) {
                 LOGE(TAG, "Parse json err", e);
                 listener.failure(new NonThrowError(ErrorCode.INTERNAL_ERR, "not a json file"));
             }
-        });
     }
 
     /**
@@ -182,14 +189,28 @@ public class Backup {
                                                  RestoreProgressListener listener) {
         AsyncTaskExecutor.execute(() -> {
             listener.onProgressUpdate(RestoreProgress.RESTORE_TO_DB);
+            if (backupModel == null || backupModel.getMetadata() == null) {
+                listener.failure(new NonThrowError(ErrorCode.ILLEGAL_ARGS, "备份文件缺少基本信息"));
+                return;
+            }
+            try {
+                TallyDatabase.getInstance().runInTransaction(() -> restoreTables(backupModel));
+                listener.success(backupModel);
+            } catch (Exception e) {
+                LOGE(TAG, "恢复备份失败", e);
+                listener.failure(new NonThrowError(ErrorCode.SQL_ERR, "恢复备份失败，数据未导入"));
+            }
+        });
+    }
 
-            BackupModelMetadata metadata = backupModel.getMetadata();
+    private static void restoreTables(BackupModel backupModel) {
+        BackupModelMetadata metadata = backupModel.getMetadata();
             // 恢复分类表数据
             List<BackupModelCategory> categoryList = backupModel.getCategoryList();
             if (categoryList != null && !categoryList.isEmpty()) {
                 boolean restoreCategoryOk = restoreCategoryTable(metadata, categoryList);
                 if (!restoreCategoryOk) {
-                    listener.failure(new NonThrowError(ErrorCode.SQL_ERR, "恢复分类数据失败"));
+                    throw new IllegalStateException("恢复分类数据失败");
                 }
             }
 
@@ -198,12 +219,49 @@ public class Backup {
             if (expenseList != null && !expenseList.isEmpty()) {
                 boolean restoreExpenseOk = restoreExpenseTable(metadata, expenseList);
                 if (!restoreExpenseOk) {
-                    listener.failure(new NonThrowError(ErrorCode.SQL_ERR, "恢复消费数据失败"));
+                    throw new IllegalStateException("恢复消费数据失败");
                 }
             }
 
-            listener.success(backupModel);
-        });
+            List<BackupModelLargeExpense> largeExpenseList = backupModel.getLargeExpenseList();
+            if (largeExpenseList != null && !largeExpenseList.isEmpty()) {
+                    List<LargeExpenseEntity> entities = new ArrayList<>();
+                    for (BackupModelLargeExpense item : largeExpenseList) {
+                        if (TextUtils.isEmpty(item.getId()) || item.getAmount() <= 0) {
+                            continue;
+                        }
+                        LargeExpenseEntity entity = new LargeExpenseEntity();
+                        entity.id = item.getId();
+                        entity.amount = item.getAmount();
+                        entity.note = item.getNote() == null ? "" : item.getNote();
+                        entity.time = item.getTime();
+                        entities.add(entity);
+                    }
+                    TallyDatabase.getInstance().largeExpenseDao().save(
+                            entities.toArray(new LargeExpenseEntity[0]));
+            }
+
+            List<BackupModelRecurringExpense> recurringList = backupModel.getRecurringExpenseList();
+            if (recurringList != null && !recurringList.isEmpty()) {
+                    List<RecurringExpenseEntity> entities = new ArrayList<>();
+                    for (BackupModelRecurringExpense item : recurringList) {
+                        if (TextUtils.isEmpty(item.getId()) || TextUtils.isEmpty(item.getName())
+                                || TextUtils.isEmpty(item.getCategoryUniqueName())
+                                || item.getAmount() <= 0 || item.getDayOfMonth() < 1
+                                || item.getDayOfMonth() > 31 || item.getStartMonth() <= 0) continue;
+                        RecurringExpenseEntity entity = new RecurringExpenseEntity();
+                        entity.id = item.getId();
+                        entity.name = item.getName();
+                        entity.amount = item.getAmount();
+                        entity.dayOfMonth = item.getDayOfMonth();
+                        entity.categoryUniqueName = item.getCategoryUniqueName();
+                        entity.startMonth = item.getStartMonth();
+                        entity.lastGeneratedMonth = item.getLastGeneratedMonth();
+                        entities.add(entity);
+                    }
+                    TallyDatabase.getInstance().recurringExpenseDao().save(
+                            entities.toArray(new RecurringExpenseEntity[0]));
+            }
     }
 
     /**
@@ -229,6 +287,7 @@ public class Backup {
             entity.setIcon(backupCategory.getIcon());
             entity.setAccountId(backupCategory.getAccountId());
             entity.setSyncStatus(backupCategory.getSyncStatus());
+            entity.setHidden(backupCategory.getHidden());
             // 0.6.0 版本之前没有 type 之分，全部为支出分类类型
             entity.setType(metadata.getClientVersionCode() < 60 ?
                     CategoryEntity.TYPE_EXPENSE : backupCategory.getType());
@@ -307,12 +366,14 @@ public class Backup {
      */
     private static boolean restoreExpenseTableBefore060(List<BackupModelRecord> recordList) {
         TallyDatabase database = TallyDatabase.getInstance();
-        List<CategoryModel> expenseCategoryList = database.categoryDao().allExpenseCategory();
+        List<CategoryModel> expenseCategoryList = database.categoryDao().allCategory();
 
         // categoryName - categoryUniqueName Map
         HashMap<String, String> getCategoryUniqueNameByName = new HashMap<>();
         for (CategoryModel category : expenseCategoryList) {
-            getCategoryUniqueNameByName.put(category.getName(), category.getUniqueName());
+            if (category.getType() == CategoryModel.TYPE_EXPENSE) {
+                getCategoryUniqueNameByName.put(category.getName(), category.getUniqueName());
+            }
         }
 
         RecordEntity[] insertArray = new RecordEntity[recordList.size()];
@@ -368,6 +429,7 @@ public class Backup {
             category.setAccountId(entity.getAccountId());
             category.setType(entity.getType());
             category.setSyncStatus(entity.getSyncStatus());
+            category.setHidden(entity.getHidden());
 
             categoryList.add(category);
         }
@@ -401,6 +463,31 @@ public class Backup {
         backupModel.setMetadata(metadata);
         backupModel.setCategoryList(categoryList);
         backupModel.setExpenseList(recordList);
+
+        List<BackupModelLargeExpense> largeExpenseList = new ArrayList<>();
+        for (LargeExpenseEntity entity : database.largeExpenseDao().all()) {
+            BackupModelLargeExpense item = new BackupModelLargeExpense();
+            item.setId(entity.id);
+            item.setAmount(entity.amount);
+            item.setNote(entity.note);
+            item.setTime(entity.time);
+            largeExpenseList.add(item);
+        }
+        backupModel.setLargeExpenseList(largeExpenseList);
+
+        List<BackupModelRecurringExpense> recurringList = new ArrayList<>();
+        for (RecurringExpenseEntity entity : database.recurringExpenseDao().all()) {
+            BackupModelRecurringExpense item = new BackupModelRecurringExpense();
+            item.setId(entity.id);
+            item.setName(entity.name);
+            item.setAmount(entity.amount);
+            item.setDayOfMonth(entity.dayOfMonth);
+            item.setCategoryUniqueName(entity.categoryUniqueName);
+            item.setStartMonth(entity.startMonth);
+            item.setLastGeneratedMonth(entity.lastGeneratedMonth);
+            recurringList.add(item);
+        }
+        backupModel.setRecurringExpenseList(recurringList);
 
         return backupModel;
     }

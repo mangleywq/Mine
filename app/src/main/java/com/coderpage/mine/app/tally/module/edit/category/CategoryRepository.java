@@ -26,6 +26,11 @@ import java.util.List;
 
 class CategoryRepository {
 
+    static final int HIDE_FAILED = 0;
+    static final int HIDE_SUCCESS = 1;
+    static final int HIDE_USED_BY_RECURRING = 2;
+    static final int HIDE_LAST_VISIBLE = 3;
+
     /**
      * 查询分类
      *
@@ -76,6 +81,36 @@ class CategoryRepository {
             TallyDatabase.getInstance().categoryDao().update(categoryId, icon, name);
             CategoryModel categoryModel = TallyDatabase.getInstance().categoryDao().queryById(categoryId);
             callback.success(categoryModel);
+        });
+    }
+
+    /** Keep the row for historical records, but remove it from future category choices. */
+    void hideCategory(CategoryModel category, SimpleCallback<Integer> callback) {
+        MineExecutors.ioExecutor().execute(() -> {
+            int result = HIDE_FAILED;
+            try {
+                TallyDatabase database = TallyDatabase.getInstance();
+                final int[] transactionResult = {HIDE_FAILED};
+                database.runInTransaction(() -> {
+                    CategoryModel current = database.categoryDao().queryById(category.getId());
+                    if (current == null || current.getHidden() != 0) return;
+                    if (database.recurringExpenseDao().countByCategory(current.getUniqueName()) > 0) {
+                        transactionResult[0] = HIDE_USED_BY_RECURRING;
+                        return;
+                    }
+                    if (database.categoryDao().visibleCount(current.getType()) <= 1) {
+                        transactionResult[0] = HIDE_LAST_VISIBLE;
+                        return;
+                    }
+                    if (database.categoryDao().hide(current.getId()) == 1) {
+                        transactionResult[0] = HIDE_SUCCESS;
+                    }
+                });
+                result = transactionResult[0];
+            } catch (Exception ignored) {
+                // The UI reports failure without altering the category list.
+            }
+            callback.success(result);
         });
     }
 

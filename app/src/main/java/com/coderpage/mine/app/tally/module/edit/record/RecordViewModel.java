@@ -263,7 +263,7 @@ public class RecordViewModel extends AndroidViewModel implements LifecycleObserv
 
     private void initData() {
         // 查询所有分类
-        mRepository.queryAllCategory(mType, categoryList -> {
+        mRepository.queryAllCategory(mType, mRecordId, categoryList -> {
 
             if (categoryList == null || categoryList.isEmpty()) {
                 return;
@@ -287,7 +287,7 @@ public class RecordViewModel extends AndroidViewModel implements LifecycleObserv
 
     private void refreshCategoryList() {
         // 查询所有分类
-        mRepository.queryAllCategory(mType, categoryList -> {
+        mRepository.queryAllCategory(mType, mRecordId, categoryList -> {
 
             if (categoryList == null || categoryList.isEmpty()) {
                 return;

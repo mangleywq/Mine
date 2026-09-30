@@ -245,21 +245,29 @@ public class TallyChartViewModel extends BaseViewModel implements LifecycleObser
     }
 
     private void init() {
-        mRepository.queryFirstRecordTime(new Callback<Long, IError>() {
+        mRepository.queryRecordTimeRange(new Callback<Pair<Long, Long>, IError>() {
             @Override
-            public void success(Long firstRecordTime) {
+            public void success(Pair<Long, Long> recordTimeRange) {
                 Month firstMonth = new Month();
-                Month currentMonth = new Month();
+                Month lastMonth = new Month();
 
                 Calendar calendar = Calendar.getInstance();
-                currentMonth.setYear(calendar.get(Calendar.YEAR));
-                currentMonth.setMonth(calendar.get(Calendar.MONTH) + 1);
+                lastMonth.setYear(calendar.get(Calendar.YEAR));
+                lastMonth.setMonth(calendar.get(Calendar.MONTH) + 1);
 
-                calendar.setTimeInMillis(firstRecordTime);
+                calendar.setTimeInMillis(recordTimeRange.first);
                 firstMonth.setYear(calendar.get(Calendar.YEAR));
                 firstMonth.setMonth(calendar.get(Calendar.MONTH) + 1);
 
-                for (int y = firstMonth.getYear(); y <= currentMonth.getYear(); y++) {
+                calendar.setTimeInMillis(recordTimeRange.second);
+                if (calendar.get(Calendar.YEAR) > lastMonth.getYear()
+                        || calendar.get(Calendar.YEAR) == lastMonth.getYear()
+                        && calendar.get(Calendar.MONTH) + 1 > lastMonth.getMonth()) {
+                    lastMonth.setYear(calendar.get(Calendar.YEAR));
+                    lastMonth.setMonth(calendar.get(Calendar.MONTH) + 1);
+                }
+
+                for (int y = firstMonth.getYear(); y <= lastMonth.getYear(); y++) {
 
                     for (int m = 1; m <= 12; m++) {
                         Month month = new Month();
@@ -267,7 +275,7 @@ public class TallyChartViewModel extends BaseViewModel implements LifecycleObser
                         month.setMonth(m);
                         mSelectableMonthList.add(month);
 
-                        if (y == currentMonth.getYear() && m == currentMonth.getMonth()) {
+                        if (y == lastMonth.getYear() && m == lastMonth.getMonth()) {
                             break;
                         }
                     }

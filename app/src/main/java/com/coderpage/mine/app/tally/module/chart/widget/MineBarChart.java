@@ -3,13 +3,18 @@ package com.coderpage.mine.app.tally.module.chart.widget;
 import android.content.Context;
 import android.graphics.Canvas;
 import android.util.AttributeSet;
+import android.view.HapticFeedbackConstants;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewConfiguration;
 
 import com.github.mikephil.charting.charts.BarChart;
+import com.github.mikephil.charting.data.BarEntry;
 import com.github.mikephil.charting.data.Entry;
 import com.github.mikephil.charting.highlight.Highlight;
 import com.github.mikephil.charting.interfaces.datasets.IDataSet;
+import com.github.mikephil.charting.utils.MPPointD;
+import com.github.mikephil.charting.utils.Transformer;
 
 /**
  * @author lc. 2018-09-29 16:22
@@ -18,7 +23,17 @@ import com.github.mikephil.charting.interfaces.datasets.IDataSet;
 
 public class MineBarChart extends BarChart {
 
+    private static final long BAR_HOLD_DURATION_MS = 1000L;
     private boolean mDrawMarkOnTop = false;
+    private float mDownX;
+    private float mDownY;
+    private boolean mHoldTriggered;
+    private Runnable mPendingBarHold;
+    private OnBarHoldListener mOnBarHoldListener;
+
+    public interface OnBarHoldListener {
+        void onBarHold(BarEntry entry);
+    }
 
     public MineBarChart(Context context) {
         super(context);
@@ -43,13 +58,92 @@ public class MineBarChart extends BarChart {
         this.mDrawMarkOnTop = drawMarkOnTop;
     }
 
+    public void setOnBarHoldListener(OnBarHoldListener listener) {
+        mOnBarHoldListener = listener;
+    }
+
+    public void cancelPendingBarHold() {
+        if (mPendingBarHold != null) {
+            removeCallbacks(mPendingBarHold);
+            mPendingBarHold = null;
+        }
+    }
+
     @Override
     public boolean onTouchEvent(MotionEvent event) {
         // 参考 http://www.jianshu.com/p/fe3d109eb27e
-        if (event.getAction() == MotionEvent.ACTION_DOWN) {
-            requestDisallowInterceptTouchEvent(true);
+        switch (event.getActionMasked()) {
+            case MotionEvent.ACTION_DOWN:
+                requestDisallowInterceptTouchEvent(true);
+                cancelPendingBarHold();
+                mHoldTriggered = false;
+                mDownX = event.getX();
+                mDownY = event.getY();
+                scheduleBarHold(mDownX, mDownY);
+                break;
+            case MotionEvent.ACTION_MOVE:
+                int slop = ViewConfiguration.get(getContext()).getScaledTouchSlop();
+                if (Math.abs(event.getX() - mDownX) > slop
+                        || Math.abs(event.getY() - mDownY) > slop) {
+                    cancelPendingBarHold();
+                }
+                break;
+            case MotionEvent.ACTION_POINTER_DOWN:
+            case MotionEvent.ACTION_CANCEL:
+                cancelPendingBarHold();
+                break;
+            case MotionEvent.ACTION_UP:
+                cancelPendingBarHold();
+                if (mHoldTriggered) return true;
+                break;
+            default:
+                break;
         }
         return super.onTouchEvent(event);
+    }
+
+    private void scheduleBarHold(float x, float y) {
+        if (mOnBarHoldListener == null || mData == null) return;
+        if (getMarker() instanceof MarkViewMine
+                && ((MarkViewMine) getMarker()).getBound().contains(x, y)) return;
+        Highlight highlight = getHighlightByTouchPoint(x, y);
+        if (highlight == null) return;
+        Entry entry = mData.getEntryForHighlight(highlight);
+        if (!(entry instanceof BarEntry) || entry.getY() <= 0f
+                || !isNearBar((BarEntry) entry, highlight, x, y)) return;
+        BarEntry selected = (BarEntry) entry;
+        mPendingBarHold = () -> {
+            mPendingBarHold = null;
+            mHoldTriggered = true;
+            performHapticFeedback(HapticFeedbackConstants.LONG_PRESS);
+            if (mOnBarHoldListener != null) mOnBarHoldListener.onBarHold(selected);
+        };
+        postDelayed(mPendingBarHold, BAR_HOLD_DURATION_MS);
+    }
+
+    private boolean isNearBar(BarEntry entry, Highlight highlight, float x, float y) {
+        Transformer transformer = getTransformer(highlight.getAxis());
+        float halfBarWidth = getBarData().getBarWidth() / 2f;
+        MPPointD top = transformer.getPixelForValues(entry.getX(), entry.getY());
+        MPPointD bottom = transformer.getPixelForValues(entry.getX(), 0f);
+        MPPointD left = transformer.getPixelForValues(entry.getX() - halfBarWidth, 0f);
+        MPPointD right = transformer.getPixelForValues(entry.getX() + halfBarWidth, 0f);
+        float padding = getResources().getDisplayMetrics().density * 12f;
+        boolean inside = x >= Math.min(left.x, right.x) - padding
+                && x <= Math.max(left.x, right.x) + padding
+                && y >= Math.min(top.y, bottom.y) - padding
+                && y <= Math.max(top.y, bottom.y) + padding;
+        MPPointD.recycleInstance(top);
+        MPPointD.recycleInstance(bottom);
+        MPPointD.recycleInstance(left);
+        MPPointD.recycleInstance(right);
+        return inside;
+    }
+
+    @Override
+    protected void onDetachedFromWindow() {
+        cancelPendingBarHold();
+        super.onDetachedFromWindow();
     }
 
     @Override

@@ -22,6 +22,26 @@ public class BackupModel {
     private List<BackupModelCategory> categoryList;
     @JSONField(name = "expense_list")
     private List<BackupModelRecord> expenseList;
+    @JSONField(name = "large_expense_list")
+    private List<BackupModelLargeExpense> largeExpenseList;
+    @JSONField(name = "recurring_expense_list")
+    private List<BackupModelRecurringExpense> recurringExpenseList;
+
+    public List<BackupModelRecurringExpense> getRecurringExpenseList() {
+        return recurringExpenseList;
+    }
+
+    public void setRecurringExpenseList(List<BackupModelRecurringExpense> recurringExpenseList) {
+        this.recurringExpenseList = recurringExpenseList;
+    }
+
+    public List<BackupModelLargeExpense> getLargeExpenseList() {
+        return largeExpenseList;
+    }
+
+    public void setLargeExpenseList(List<BackupModelLargeExpense> largeExpenseList) {
+        this.largeExpenseList = largeExpenseList;
+    }
 
     public BackupModelMetadata getMetadata() {
         return metadata;

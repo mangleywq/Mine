@@ -26,20 +26,34 @@ class RecordRepository {
     }
 
     /** 查询所有支付分类 */
-    void queryAllCategory(RecordType type, SimpleCallback<List<CategoryModel>> callback) {
+    void queryAllCategory(RecordType type, long recordId, SimpleCallback<List<CategoryModel>> callback) {
         MineExecutors.ioExecutor().execute(() -> {
             if (type == RecordType.EXPENSE) {
                 List<CategoryModel> categoryList = mDataBase.categoryDao().allExpenseCategory();
+                includeRecordCategory(categoryList, recordId);
                 MineExecutors.executeOnUiThread(() -> callback.success(categoryList));
                 return;
             }
             if (type == RecordType.INCOME) {
                 List<CategoryModel> categoryList = mDataBase.categoryDao().allIncomeCategory();
+                includeRecordCategory(categoryList, recordId);
                 MineExecutors.executeOnUiThread(() -> callback.success(categoryList));
                 return;
             }
             MineExecutors.executeOnUiThread(() -> callback.success(new ArrayList<>()));
         });
+    }
+
+    private void includeRecordCategory(List<CategoryModel> categories, long recordId) {
+        if (recordId <= 0) return;
+        Record record = mDataBase.recordDao().queryById(recordId);
+        if (record == null || record.getCategoryUniqueName() == null) return;
+        for (CategoryModel category : categories) {
+            if (record.getCategoryUniqueName().equals(category.getUniqueName())) return;
+        }
+        CategoryModel historical = mDataBase.categoryDao()
+                .queryByUniqueName(record.getCategoryUniqueName());
+        if (historical != null) categories.add(historical);
     }
 
     /** 通过 ID 查询记录 */

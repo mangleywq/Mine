@@ -1,5 +1,6 @@
 package com.coderpage.mine.app.tally.module.chart;
 
+import android.util.Pair;
 import com.coderpage.base.common.Callback;
 import com.coderpage.base.common.IError;
 import com.coderpage.concurrency.MineExecutors;
@@ -25,18 +26,23 @@ import java.util.List;
 class TallyChartRepository {
 
     /**
-     * 查询第一个记录时间
+     * 查询记录的最早和最晚时间
      *
      * @param callback 回调
      */
-    void queryFirstRecordTime(Callback<Long, IError> callback) {
+    void queryRecordTimeRange(Callback<Pair<Long, Long>, IError> callback) {
         MineExecutors.ioExecutor().execute(() -> {
             long firstTime = System.currentTimeMillis();
+            long lastTime = firstTime;
             Record recordFirst = TallyDatabase.getInstance().recordDao().queryFirst();
             if (recordFirst != null) {
-                firstTime = recordFirst.getTime();
+                firstTime = Math.min(firstTime, recordFirst.getTime());
             }
-            callback.success(firstTime);
+            Record recordLast = TallyDatabase.getInstance().recordDao().queryLast();
+            if (recordLast != null) {
+                lastTime = Math.max(lastTime, recordLast.getTime());
+            }
+            callback.success(new Pair<>(firstTime, lastTime));
         });
     }
 

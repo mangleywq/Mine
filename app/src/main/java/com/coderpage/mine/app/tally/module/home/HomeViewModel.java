@@ -52,7 +52,6 @@ public class HomeViewModel extends AndroidViewModel implements LifecycleObserver
         super(application);
         mRepository = new HomRepository();
         mHideMoney.set(SettingPreference.getHideMoney(application));
-        refresh();
     }
 
     public ObservableField<Boolean> getHideMoney() {

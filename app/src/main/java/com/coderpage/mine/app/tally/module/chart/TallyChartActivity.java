@@ -127,6 +127,11 @@ public class TallyChartActivity extends BaseActivity {
 
     private void initView() {
         mBarChart = mBinding.barChart;
+        mBarChart.setOnBarHoldListener(entry -> {
+            if (entry.getData() instanceof DailyData) {
+                mViewModel.onDailyMarkerViewClick(self(), (DailyData) entry.getData());
+            }
+        });
         mLineChart = mBinding.lineChart;
         mPieChart = mBinding.pieChart;
         mCategoryDataRecycler = mBinding.recyclerCategory;
@@ -135,6 +140,12 @@ public class TallyChartActivity extends BaseActivity {
         mCategoryDataRecycler.setAdapter(mCategoryDataAdapter);
         mCategoryDataRecycler.setHasFixedSize(true);
         mCategoryDataRecycler.setNestedScrollingEnabled(false);
+    }
+
+    @Override
+    protected void onPause() {
+        mBarChart.cancelPendingBarHold();
+        super.onPause();
     }
 
     private void subScribeUi() {
@@ -207,6 +218,7 @@ public class TallyChartActivity extends BaseActivity {
      * @param dailyDataList 每日支出或每日收入数据
      */
     private void showDailyBarChart(boolean isShowExpense, List<DailyData> dailyDataList) {
+        mBarChart.cancelPendingBarHold();
         int barColor = isShowExpense ? UIUtils.getColor(this, R.color.expenseColor)
                 : UIUtils.getColor(this, R.color.incomeColor);
 

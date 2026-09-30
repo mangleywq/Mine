@@ -138,7 +138,7 @@ public class RecordQuery implements Parcelable {
         public Builder() {
             type = TYPE_ALL;
             startTime = 0;
-            endTime = System.currentTimeMillis();
+            endTime = Long.MAX_VALUE;
         }
 
         /**

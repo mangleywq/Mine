@@ -113,6 +113,7 @@ public class DateUtils {
         monthStartCalendar.set(Calendar.HOUR_OF_DAY, 0);
         monthStartCalendar.set(Calendar.MINUTE, 0);
         monthStartCalendar.set(Calendar.SECOND, 0);
+        monthStartCalendar.set(Calendar.MILLISECOND, 0);
         return monthStartCalendar.getTimeInMillis();
     }
 

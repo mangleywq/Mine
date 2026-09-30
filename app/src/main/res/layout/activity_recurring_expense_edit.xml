@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/background"
+    android:fitsSystemWindows="true"
+    android:focusableInTouchMode="true"
+    android:orientation="vertical">
+
+    <include layout="@layout/toolbar" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="72dp"
+        android:background="@color/white"
+        android:gravity="center_vertical"
+        android:paddingStart="@dimen/padding_normal"
+        android:paddingEnd="@dimen/padding_normal">
+
+        <FrameLayout
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:background="@drawable/bg_category_expense_selected"
+            android:padding="8dp">
+            <ImageView
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:contentDescription="@string/recurring_expense_title"
+                android:src="@drawable/ic_recurring_expense_white" />
+        </FrameLayout>
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="@dimen/spacing_normal"
+            android:text="@string/recurring_expense_title"
+            android:textColor="@color/appTextColorPrimary"
+            android:textSize="@dimen/app_text_size_normal" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="¥"
+            android:textColor="@color/appTextColorPrimary"
+            android:textSize="@dimen/app_text_size_large" />
+
+        <TextView
+            android:id="@+id/recurringExpenseEditAmount"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:gravity="end"
+            android:minWidth="64dp"
+            android:text="0"
+            android:textColor="@color/appTextColorPrimary"
+            android:textSize="@dimen/app_text_size_large" />
+    </LinearLayout>
+
+    <View android:layout_width="match_parent" android:layout_height="1px"
+        android:background="@color/divider" />
+
+    <EditText
+        android:id="@+id/recurringExpenseEditName"
+        android:layout_width="match_parent"
+        android:layout_height="52dp"
+        android:background="@color/white"
+        android:hint="@string/recurring_expense_name"
+        android:imeOptions="actionDone"
+        android:inputType="textCapSentences"
+        android:maxLines="1"
+        android:paddingStart="@dimen/padding_normal"
+        android:paddingEnd="@dimen/padding_normal"
+        android:textColor="@color/appTextColorPrimary"
+        android:textSize="@dimen/app_text_size_medium" />
+
+    <View android:layout_width="match_parent" android:layout_height="1px"
+        android:background="@color/divider" />
+
+    <TextView
+        android:id="@+id/recurringExpenseEditDay"
+        android:layout_width="match_parent"
+        android:layout_height="52dp"
+        android:background="@color/white"
+        android:gravity="center_vertical"
+        android:paddingStart="@dimen/padding_normal"
+        android:paddingEnd="@dimen/padding_normal"
+        android:textColor="@color/appTextColorPrimary"
+        android:textSize="@dimen/app_text_size_medium" />
+
+    <View android:layout_width="match_parent" android:layout_height="1px"
+        android:background="@color/divider" />
+
+    <TextView
+        android:id="@+id/recurringExpenseEditCategory"
+        android:layout_width="match_parent"
+        android:layout_height="52dp"
+        android:background="@color/white"
+        android:gravity="center_vertical"
+        android:paddingStart="@dimen/padding_normal"
+        android:paddingEnd="@dimen/padding_normal"
+        android:textColor="@color/appTextColorPrimary"
+        android:textSize="@dimen/app_text_size_medium" />
+
+    <View android:layout_width="match_parent" android:layout_height="0dp"
+        android:layout_weight="1" />
+
+    <LinearLayout
+        android:id="@+id/recurringExpenseKeypad"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/white"
+        android:orientation="horizontal" />
+</LinearLayout>

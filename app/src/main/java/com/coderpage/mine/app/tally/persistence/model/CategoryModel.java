@@ -49,6 +49,9 @@ public class CategoryModel {
     @ColumnInfo(name = "category_sync_status")
     private int syncStatus;
 
+    @ColumnInfo(name = "category_hidden")
+    private int hidden;
+
     public long getId() {
         return id;
     }
@@ -111,5 +114,13 @@ public class CategoryModel {
 
     public void setSyncStatus(int syncStatus) {
         this.syncStatus = syncStatus;
+    }
+
+    public int getHidden() {
+        return hidden;
+    }
+
+    public void setHidden(int hidden) {
+        this.hidden = hidden;
     }
 }

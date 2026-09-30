@@ -64,7 +64,7 @@ public class RecordsViewModel extends BaseViewModel implements LifecycleObserver
     private RecordQuery mQuery = new RecordQuery.Builder()
             .setType(RecordQuery.TYPE_ALL)
             .setStartTime(0)
-            .setEndTime(System.currentTimeMillis())
+            .setEndTime(Long.MAX_VALUE)
             .build();
     private RecordsRepository mRepository;
     /** 数据加载代理。处理数据的刷新、加载更多等操作 */
@@ -229,7 +229,7 @@ public class RecordsViewModel extends BaseViewModel implements LifecycleObserver
         mQuery = query == null ? new RecordQuery.Builder()
                 .setType(RecordQuery.TYPE_ALL)
                 .setStartTime(0)
-                .setEndTime(System.currentTimeMillis())
+                .setEndTime(Long.MAX_VALUE)
                 .build() : query;
         setQuery(mQuery);
 

@@ -11,6 +11,7 @@ import com.coderpage.mine.app.tally.persistence.sql.TallyDatabase;
 import com.coderpage.mine.app.tally.utils.DateUtils;
 
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -84,7 +85,9 @@ class HomRepository {
             long day3AgoStartTime = todayStartTime - (1000 * 60 * 60 * 24 * 2);
             // 本月开始时间&结束时间
             long monthStartTime = DateUtils.currentMonthStartUnixTime();
-            long monthEndTime = System.currentTimeMillis();
+            Calendar currentMonth = Calendar.getInstance();
+            long monthEndTime = DateUtils.monthDateRange(
+                    currentMonth.get(Calendar.YEAR), currentMonth.get(Calendar.MONTH) + 1).second;
             // 月消费总额
             double monthExpenseTotalAmount = 0;
             // 月收入总额

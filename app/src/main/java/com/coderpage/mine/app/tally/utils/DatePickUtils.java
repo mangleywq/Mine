@@ -76,7 +76,6 @@ public class DatePickUtils {
         final String titleDateFormat = activity.getString(R.string.tally_calendar_title_format);
         materialCalendar.setTitleFormatter(
                 (CalendarDay day) -> String.format(titleDateFormat, day.getYear(), day.getMonth() + 1));
-        materialCalendar.state().edit().setMaximumDate(Calendar.getInstance()).commit();
         materialCalendar.setOnDateChangedListener(
                 (@NonNull MaterialCalendarView widget, @NonNull CalendarDay date, boolean selected) -> {
                     if (listener != null) {
@@ -131,7 +130,6 @@ public class DatePickUtils {
                 })
                 .create();
 
-        calendarView.setMaxDate(System.currentTimeMillis());
         calendarView.setOnDateChangeListener(
                 (@NonNull CalendarView view, int year, int month, int dayOfMonth) -> {
                     selectedCalendar.set(Calendar.YEAR, year);

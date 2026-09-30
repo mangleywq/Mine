@@ -126,6 +126,10 @@ public interface RecordDao {
     @Insert
     long insert(RecordEntity record);
 
+    /** Used by monthly rules so opening the app twice never duplicates a record. */
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    long insertIgnoringConflict(RecordEntity record);
+
     /**
      * 批量插入记录
      *
@@ -280,6 +284,11 @@ public interface RecordDao {
     @SuppressWarnings(RoomWarnings.CURSOR_MISMATCH)
     @Query("select * from record order by record_time ASC limit 1")
     Record queryFirst();
+
+    /** Latest dated record, including records dated in the future. */
+    @SuppressWarnings(RoomWarnings.CURSOR_MISMATCH)
+    @Query("select * from record order by record_time DESC limit 1")
+    Record queryLast();
 
     /***
      * 查询所有记录

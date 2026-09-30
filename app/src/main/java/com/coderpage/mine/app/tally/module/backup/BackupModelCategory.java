@@ -38,6 +38,10 @@ public class BackupModelCategory {
     @JSONField(name = "syncStatus")
     private int syncStatus;
 
+    /** Deleted categories remain in backups so historical records keep their names. */
+    @JSONField(name = "hidden")
+    private int hidden;
+
     public int getType() {
         return type;
     }
@@ -84,5 +88,13 @@ public class BackupModelCategory {
 
     public void setSyncStatus(int syncStatus) {
         this.syncStatus = syncStatus;
+    }
+
+    public int getHidden() {
+        return hidden;
+    }
+
+    public void setHidden(int hidden) {
+        this.hidden = hidden;
     }
 }

@@ -40,11 +40,12 @@ public class TimeUtils {
         int month = calendar.get(Calendar.MONTH);
         int day = calendar.get(Calendar.DAY_OF_MONTH);
 
-        if (currentYear > year) {
+        boolean today = currentYear == year && currentMonth == month && currentDay == day;
+        if (year != currentYear || timeMillis > System.currentTimeMillis() && !today) {
             return mYearMonthDayFormat.format(calendar.getTime());
         }
 
-        if (currentMonth > month || currentDay > day) {
+        if (!today) {
             return mMonthDayFormat.format(calendar.getTime());
         }
 

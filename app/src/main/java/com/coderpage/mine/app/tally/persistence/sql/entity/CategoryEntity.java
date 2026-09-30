@@ -52,6 +52,10 @@ public class CategoryEntity {
     @ColumnInfo(name = "category_sync_status")
     private int syncStatus;
 
+    /** Hidden from category pickers while retained for historical records. */
+    @ColumnInfo(name = "category_hidden")
+    private int hidden;
+
     public long getId() {
         return id;
     }
@@ -115,5 +119,13 @@ public class CategoryEntity {
 
     public void setSyncStatus(int syncStatus) {
         this.syncStatus = syncStatus;
+    }
+
+    public int getHidden() {
+        return hidden;
+    }
+
+    public void setHidden(int hidden) {
+        this.hidden = hidden;
     }
 }

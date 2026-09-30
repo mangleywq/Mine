@@ -9,18 +9,15 @@ import android.content.Intent;
 import android.net.Uri;
 import android.support.annotation.NonNull;
 import android.support.v7.app.AlertDialog;
-import android.text.TextUtils;
 import android.view.View;
 import android.widget.TextView;
 
 import com.coderpage.base.common.IError;
 import com.coderpage.base.common.SimpleCallback;
-import com.coderpage.base.utils.FileUtils;
 import com.coderpage.base.utils.ResUtils;
 import com.coderpage.framework.BaseViewModel;
 import com.coderpage.mine.R;
 import com.coderpage.mine.app.tally.common.permission.PermissionReqHandler;
-import com.tendcloud.tenddata.TCAgent;
 
 import java.io.File;
 import java.util.Date;
@@ -94,25 +91,6 @@ public class BackupFileViewModel extends BaseViewModel {
         });
     }
 
-    /**
-     * 处理从文件管理器选择的备份文件。
-     *
-     * @param activity activity
-     * @param filePath 文件路径。
-     */
-    private void onBackupFileSelectedFromFileSystem(Activity activity, String filePath) {
-        if (TextUtils.isEmpty(filePath)) {
-            showToastShort(R.string.tally_toast_illegal_path);
-            return;
-        }
-        File file = new File(filePath);
-        if (!file.exists() || !file.isFile()) {
-            showToastShort(R.string.tally_toast_illegal_path);
-            return;
-        }
-        readDataFromBackupJsonFile(filePath, backupModel -> showRestoreDataConfirmDialog(activity, backupModel));
-    }
-
     /** 显示备份文件列表 */
     private void showBackupFileSelectDialog(Activity activity) {
         List<File> fileList = Backup.listBackupFiles(getApplication());
@@ -126,7 +104,7 @@ public class BackupFileViewModel extends BaseViewModel {
             dialog.dismiss();
             String filePath = fileList.get(which).getAbsolutePath();
             // 弹框确认弹框
-            readDataFromBackupJsonFile(filePath, backupModel ->
+            readDataFromBackupJsonUri(Uri.fromFile(new File(filePath)), backupModel ->
                     showRestoreDataConfirmDialog(activity, backupModel));
         });
         builder.setPositiveButton(
@@ -220,9 +198,8 @@ public class BackupFileViewModel extends BaseViewModel {
      * @param filePath 备份文件所在目录
      * @param callback 回调
      */
-    private void readDataFromBackupJsonFile(String filePath, SimpleCallback<BackupModel> callback) {
-        File file = new File(filePath);
-        Backup.readBackupJsonFile(file, new Backup.RestoreProgressListener() {
+    private void readDataFromBackupJsonUri(Uri uri, SimpleCallback<BackupModel> callback) {
+        Backup.readBackupJsonUri(getApplication(), uri, new Backup.RestoreProgressListener() {
             @Override
             public void onProgressUpdate(Backup.RestoreProgress restoreProgress) {
                 switch (restoreProgress) {
@@ -247,7 +224,7 @@ public class BackupFileViewModel extends BaseViewModel {
             public void success(BackupModel backupModel) {
                 mProcessMessage.postValue(null);
                 if (backupModel == null) {
-                    TCAgent.onError(getApplication(), new IllegalStateException("备份文件读取失败"));
+                    showToastShort(R.string.tally_alert_restore_data_failure);
                     return;
                 }
                 runOnUiThread(() -> callback.success(backupModel));
@@ -296,6 +273,7 @@ public class BackupFileViewModel extends BaseViewModel {
 
             @Override
             public void failure(IError iError) {
+                mProcessMessage.postValue(null);
                 showToastLong(ResUtils.getString(getApplication(), R.string.tally_alert_restore_data_failure)
                         + " ERR:" + iError.msg());
             }
@@ -307,11 +285,11 @@ public class BackupFileViewModel extends BaseViewModel {
     ///////////////////////////////////////////////////////////////////////////
 
     protected void onActivityResult(Activity activity, int requestCode, int resultCode, Intent data) {
-        if (resultCode == Activity.RESULT_OK) {
+        if (resultCode == Activity.RESULT_OK && data != null) {
             // Get the Uri of the selected file
             Uri uri = data.getData();
-            String path = FileUtils.getPath(activity, uri);
-            onBackupFileSelectedFromFileSystem(activity, path);
+            readDataFromBackupJsonUri(uri,
+                    backupModel -> showRestoreDataConfirmDialog(activity, backupModel));
         }
     }
 

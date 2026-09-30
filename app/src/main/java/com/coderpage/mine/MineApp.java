@@ -8,8 +8,6 @@ import com.alibaba.android.arouter.launcher.ARouter;
 import com.coderpage.base.utils.UIUtils;
 import com.coderpage.base.widget.LoadingLayout;
 import com.coderpage.framework.Framework;
-import com.coderpage.mine.app.tally.update.UpdateUtils;
-import com.tendcloud.tenddata.TCAgent;
 
 /**
  * @author abner-l. 2017-02-05
@@ -30,13 +28,7 @@ public class MineApp extends Application {
             ARouter.openDebug();
             ARouter.openLog();
         }
-        if (!BuildConfig.DEBUG) {
-            TCAgent.init(this, BuildConfig.TALKING_DATA_APP_ID, BuildConfig.FLAVOR);
-            TCAgent.setReportUncaughtExceptions(true);
-        }
         AppCompatDelegate.setCompatVectorFromResourcesEnabled(true);
-        // 检查新版本
-        UpdateUtils.startNewClientVersionCheckBackground(this);
         // 初始化 LoadingLayout
         initLoadingLayout();
         // 初始化 ARouter
